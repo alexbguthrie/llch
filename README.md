@@ -1,157 +1,165 @@
 # LLM From Scratch
 
-This project implements a Language Model from scratch using PyTorch. It includes a transformer-based architecture similar to GPT, along with tokenizers, data loaders, and training utilities.
+This project is a from-scratch implementation of a Transformer-based language model, similar in style to GPT. It is written in Python using PyTorch and provides a complete toolkit for training and running your own language models. The project is designed to be clear, modular, and extensible.
 
-## Project Structure
+## Features
 
+- **Transformer Model**: A GPT-style decoder-only transformer architecture.
+- **Customizable Tokenizers**: Includes a simple word-level tokenizer and a more advanced Byte-Pair Encoding (BPE) tokenizer.
+- **Flexible Data Loading**: Supports automatic downloading of the WikiText-2 dataset or training on your own custom text files.
+- **Comprehensive Training**: A dedicated `LLMTrainer` class handles the entire training loop, including validation, checkpointing, and logging.
+- **Text Generation**: Generate new text from your trained models with adjustable creativity (temperature).
+- **Extensible Design**: Easily add new model architectures, datasets, or tokenizers.
+
+## Getting Started
+
+Follow these steps to set up the project, train a model, and generate text.
+
+### 1. Prerequisites
+
+- Python 3.8 or higher
+- Git for cloning the repository
+
+### 2. Setup
+
+First, clone the repository and navigate into the project directory:
+
+```bash
+git clone https://github.com/alexbguthrie/llch.git
+cd llch
 ```
-llm_from_scratch/
-├── data/                 # Data handling code
-│   └── dataset.py        # Dataset classes for text data
-├── model/                # Model architecture
-│   ├── tokenizer.py      # Tokenizer implementations
-│   └── transformer.py    # Transformer model architecture
-├── training/             # Training utilities
-│   └── trainer.py        # Trainer class for model training
-├── utils/                # Utility functions
-│   └── data_utils.py     # Data downloading and preprocessing
-├── requirements.txt      # Project dependencies
-├── train.py              # Main training script
-└── README.md             # This file
+
+Next, it is highly recommended to create and activate a Python virtual environment to keep dependencies isolated:
+
+```bash
+# Create a virtual environment
+python3 -m venv .venv
+
+# Activate it (on macOS/Linux)
+source .venv/bin/activate
+
+# On Windows, use:
+# .venv\Scripts\activate
 ```
 
-## Requirements
-
-Install the required packages:
+Now, install the required packages using pip:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Components
+### 3. Training a Model
 
-### Transformer Architecture
+You can train a model on the standard WikiText-2 dataset or on your own text files.
 
-The implementation includes:
-- **Multi-head self-attention**: Allows the model to focus on different parts of the input sequence
-- **Positional encoding**: Provides information about token positions in the sequence
-- **Feed-forward networks**: Processes representations from attention layers
-- **Layer normalization**: Stabilizes training by normalizing activations
-- **Residual connections**: Helps with gradient flow during training
+**Option A: Train on WikiText-2 (Recommended for first use)**
 
-### Tokenizers
-
-Two tokenizer implementations are provided:
-1. **SimpleTokenizer**: A word-level tokenizer for quick experiments
-2. **BPETokenizer**: A Byte-Pair Encoding tokenizer for subword tokenization
-
-### Datasets
-
-The project supports:
-- **WikiText-2 dataset**: Automatically downloaded and processed
-- **Custom text files**: Train on your own text data
-
-### Training
-
-The `LLMTrainer` class handles:
-- Model training and validation
-- Checkpointing and model saving
-- Loss tracking and visualization
-- Text generation from trained models
-
-## Usage
-
-### Training a Model
-
-To train a GPT-style language model on the WikiText-2 dataset:
+The WikiText-2 dataset will be automatically downloaded. This command trains a BPE tokenizer and then starts training the model.
 
 ```bash
-python train.py --dataset wikitext --model_type gpt --tokenizer_type bpe
+# Train a new model on the WikiText-2 dataset
+# --tokenizer_type bpe: Uses the advanced BPE tokenizer
+# --tokenizer_path tokenizers/bpe_wikitext.json: Saves the trained tokenizer
+# --checkpoint_dir checkpoints/wikitext_model: Saves model checkpoints here
+python train.py \
+    --dataset wikitext \
+    --tokenizer_type bpe \
+    --tokenizer_path tokenizers/bpe_wikitext.json \
+    --checkpoint_dir checkpoints/wikitext_model
 ```
 
-For a smaller model that trains faster:
+For a smaller, faster-training model, you can reduce the model dimensions:
 
 ```bash
-python train.py --d_model 256 --num_heads 4 --num_layers 4 --max_seq_length 256
+# Train a smaller model for quicker testing
+python train.py \
+    --dataset wikitext \
+    --tokenizer_type bpe \
+    --tokenizer_path tokenizers/bpe_wikitext_small.json \
+    --checkpoint_dir checkpoints/wikitext_model_small \
+    --d_model 256 \
+    --num_heads 4 \
+    --num_layers 4 \
+    --max_seq_length 256
 ```
 
-### Using Your Own Text Data
+**Option B: Train on Your Own Text Data**
 
-To train on your own text files:
+Place your text files (e.g., `.txt` files) in a directory. The script will load all files from that directory.
 
 ```bash
-python train.py --dataset text_files --text_files_dir path/to/your/text/files
+# Train a model on custom text files located in the 'my_data/' directory
+python train.py \
+    --dataset text_files \
+    --text_files_dir my_data/ \
+    --tokenizer_type bpe \
+    --tokenizer_path tokenizers/bpe_custom.json \
+    --checkpoint_dir checkpoints/custom_model
 ```
 
-### Generating Text
+### 4. Generating Text
 
-To generate text after training:
+Once you have a trained model, you can use it to generate text. You must provide the path to the tokenizer and the model checkpoint.
 
 ```bash
-python train.py --generate --prompt "Once upon a time" --max_length 100 --temperature 0.8 --resume checkpoints/best_model.pt
+# Generate text using a trained model
+# --generate: Activates generation mode
+# --resume: Path to the saved model checkpoint (use 'best_model.pt' for the best one)
+# --prompt: The starting text for the model
+# --max_length: The total number of tokens in the generated output
+python train.py \
+    --generate \
+    --tokenizer_path tokenizers/bpe_wikitext.json \
+    --resume checkpoints/wikitext_model/best_model.pt \
+    --prompt "The future of AI is" \
+    --max_length 100
 ```
 
-## Command Line Arguments
+## Project Structure
 
-### Model Parameters
-- `--model_type`: Type of model to train (default: 'gpt')
-- `--vocab_size`: Vocabulary size (default: 10000)
-- `--d_model`: Model dimension (default: 512)
-- `--num_heads`: Number of attention heads (default: 8)
-- `--num_layers`: Number of transformer layers (default: 6)
-- `--d_ff`: Feed-forward dimension (default: 2048)
-- `--max_seq_length`: Maximum sequence length (default: 512)
-- `--dropout`: Dropout rate (default: 0.1)
+```
+llm_from_scratch/
+├── data/
+│   └── dataset.py        # Dataset classes for handling text data.
+├── model/
+│   ├── tokenizer.py      # Implementations for Simple and BPE tokenizers.
+│   └── transformer.py    # Core Transformer and GPT model architectures.
+├── training/
+│   └── trainer.py        # The LLMTrainer class orchestrating the training process.
+├── utils/
+│   └── data_utils.py     # Utilities for downloading and preprocessing data.
+├── tests/
+│   └── test_tokenizers.py # Unit tests for the tokenizers.
+├── .gitignore            # Files and directories to be ignored by Git.
+├── CHANGELOG.md          # A log of changes made to the project.
+├── README.md             # This file.
+├── requirements.txt      # Project dependencies.
+└── train.py              # The main script for training and generation.
+```
 
-### Tokenizer Parameters
-- `--tokenizer_type`: Type of tokenizer to use ('simple' or 'bpe', default: 'simple')
-- `--tokenizer_path`: Path to save/load tokenizer (default: 'tokenizer.json')
+## Command-Line Arguments
 
-### Data Parameters
-- `--dataset`: Dataset to use for training ('wikitext' or 'text_files', default: 'wikitext')
-- `--data_dir`: Directory containing the data (default: 'data')
-- `--text_files_dir`: Directory containing text files (if dataset is text_files)
+The `train.py` script is highly configurable via command-line arguments.
 
-### Training Parameters
-- `--batch_size`: Batch size for training (default: 32)
-- `--learning_rate`: Learning rate (default: 3e-4)
-- `--max_epochs`: Maximum number of epochs to train (default: 10)
-- `--checkpoint_dir`: Directory to save model checkpoints (default: 'checkpoints')
-- `--device`: Device to train on ('cuda' or 'cpu')
-- `--resume`: Path to checkpoint to resume training from
+*(For a full list of arguments, run `python train.py --help`)*
 
-### Generation Parameters
-- `--generate`: Generate text after training
-- `--prompt`: Prompt for text generation (default: 'Once upon a time')
-- `--max_length`: Maximum length of generated text (default: 100)
-- `--temperature`: Temperature for text generation (default: 1.0)
+#### Key Training Arguments
+- `--dataset`: The dataset to use (`wikitext` or `text_files`).
+- `--data_dir`: The base directory for storing data.
+- `--text_files_dir`: The directory containing your custom text files.
+- `--model_type`: The model architecture to use (currently `gpt`).
+- `--tokenizer_type`: The tokenizer to use (`simple` or `bpe`).
+- `--tokenizer_path`: Where to save/load the trained tokenizer.
+- `--checkpoint_dir`: Where to save model checkpoints.
+- `--d_model`, `--num_heads`, `--num_layers`: Key parameters to define the model's size and capacity.
+- `--batch_size`, `--learning_rate`, `--max_epochs`: Core training loop parameters.
+- `--resume`: Path to a checkpoint to resume training from.
 
-## How the Model Works
-
-This implementation builds a transformer-based language model similar to GPT:
-
-1. **Tokenization**: Text is converted into tokens using either a simple word-level tokenizer or BPE
-2. **Embedding**: Tokens are embedded into a continuous vector space
-3. **Positional Encoding**: Position information is added to the embeddings
-4. **Self-Attention**: The model learns which parts of the input to focus on
-5. **Feed-Forward Networks**: Further process the attention outputs
-6. **Output Layer**: Projects to vocabulary size for next-token prediction
-
-The model is trained using a causal language modeling objective, where it learns to predict the next token given the previous tokens.
-
-## Extending the Project
-
-### Adding a New Model Architecture
-
-1. Create a new model class in `model/transformer.py`
-2. Add the model type to the choices in `train.py`
-3. Update the `create_model` function in `train.py`
-
-### Adding a New Dataset
-
-1. Create a new dataset class in `data/dataset.py`
-2. Add the dataset type to the choices in `train.py`
-3. Update the `load_dataset` function in `train.py`
+#### Key Generation Arguments
+- `--generate`: Flag to switch from training to generation mode.
+- `--prompt`: The initial text to seed the generation.
+- `--max_length`: The maximum number of tokens in the generated output.
+- `--temperature`: Controls the randomness of the output. Higher values (e.g., 1.0) are more creative; lower values (e.g., 0.7) are more deterministic.
 
 ## License
 
