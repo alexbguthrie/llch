@@ -4,13 +4,13 @@
 model:
   model_type: 'gpt'
   vocab_size: 30000
-  d_model: 768
-  num_heads: 12
-  num_layers: 12
-  d_ff: 3072
-  max_seq_length: 512
+  d_model: 256
+  num_heads: 4
+  num_layers: 4
+  d_ff: 0.1
+  max_seq_length: 256
   dropout: 0.1
-
+  
 # Tokenizer parameters
 tokenizer:
   tokenizer_type: 'bpe'
@@ -24,10 +24,11 @@ data:
 
 # Training parameters
 training:
-  batch_size: 32
-  learning_rate: 0.0003 # 3e-4
-  max_epochs: 20
+  batch_size: 16
+  learning_rate: 0.0001 # 3e-4
+  max_epochs: 10
   checkpoint_dir: 'checkpoints/wikitext_model_large'
+  device: "cpu"
   device: null # 'cuda', 'cpu', or null for auto-detection
   resume: null # Path to a checkpoint to resume from
 
