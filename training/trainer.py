@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 class LLMTrainer:
     def __init__(self, 
                  model, 
+                 config=None,
                  train_dataset=None, 
                  val_dataset=None, 
                  batch_size=32,
@@ -23,6 +24,7 @@ class LLMTrainer:
         
         Args:
             model: The language model to train
+            config: The configuration object (for saving checkpoints)
             train_dataset: Training dataset (optional, for training)
             val_dataset: Validation dataset (optional, for training)
             batch_size: Batch size for training
@@ -32,6 +34,7 @@ class LLMTrainer:
             device: Device to train on (will use CUDA if available if None)
         """
         self.model = model
+        self.config = config
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
         self.batch_size = batch_size
@@ -183,9 +186,14 @@ class LLMTrainer:
     def save_checkpoint(self, filename):
         """Save model checkpoint"""
         path = os.path.join(self.checkpoint_dir, filename)
+
+        # Convert config namespace to dict for saving
+        config_dict = self.config_to_dict(self.config) if self.config else None
+
         torch.save({
             'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict() if self.optimizer else None,
+            'config': config_dict,
             'train_losses': self.train_losses,
             'val_losses': self.val_losses,
             'best_val_loss': self.best_val_loss,
@@ -210,7 +218,7 @@ class LLMTrainer:
         
         self.model.load_state_dict(checkpoint['model_state_dict'])
         # Only load optimizer state if it exists (i.e., during training)
-        if self.optimizer and 'optimizer_state_dict' in checkpoint:
+        if self.optimizer and 'optimizer_state_dict' in checkpoint and checkpoint['optimizer_state_dict']:
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
         self.train_losses = checkpoint.get('train_losses', [])
@@ -219,6 +227,13 @@ class LLMTrainer:
         
         print(f"Checkpoint loaded from {path}")
         
+    def config_to_dict(self, namespace_obj):
+        """Recursively convert a SimpleNamespace object to a dictionary."""
+        if hasattr(namespace_obj, '__dict__'):
+            return {k: self.config_to_dict(v) for k, v in namespace_obj.__dict__.items()}
+        else:
+            return namespace_obj
+
     def plot_training_history(self):
         """Plot training and validation loss history"""
         plt.figure(figsize=(10, 5))

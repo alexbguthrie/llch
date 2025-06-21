@@ -181,6 +181,7 @@ def run_training(config):
 
     trainer = LLMTrainer(
         model=model,
+        config=config,
         train_dataset=train_dataset,
         val_dataset=val_dataset,
         batch_size=config.training.batch_size,
@@ -197,31 +198,48 @@ def run_training(config):
 
 def run_generation(config):
     """Run the text generation process."""
-    if not config.training.resume:
-        raise ValueError("A checkpoint must be provided via training.resume for generation.")
-    if not config.tokenizer.tokenizer_path or not os.path.exists(config.tokenizer.tokenizer_path):
-        raise ValueError("A valid tokenizer path must be provided via tokenizer.tokenizer_path for generation.")
+    # The primary config is now loaded from the checkpoint.
+    # The config from the file is only used for a few settings.
+    
+    # --- 1. Load configuration from checkpoint ---
+    checkpoint_path = config.training.resume
+    if not checkpoint_path or not os.path.exists(checkpoint_path):
+        raise ValueError("A valid checkpoint path must be provided via training.resume")
 
+    checkpoint = torch.load(checkpoint_path, map_location='cpu')
+    
+    if 'config' not in checkpoint:
+        raise ValueError("Checkpoint does not contain a 'config' key. Please re-train and save a new checkpoint.")
+
+    # Convert config dict from checkpoint back to namespace
+    def dict_to_namespace(d):
+        for k, v in d.items():
+            if isinstance(v, dict):
+                d[k] = dict_to_namespace(v)
+        return SimpleNamespace(**d)
+    
+    config_from_ckpt = dict_to_namespace(checkpoint['config'])
+
+    # --- 2. Setup model and tokenizer based on saved config ---
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    print(f"Loading tokenizer from {config.tokenizer.tokenizer_path}")
-    if config.tokenizer.tokenizer_type == 'simple':
-        tokenizer = SimpleTokenizer.load(config.tokenizer.tokenizer_path)
+    print(f"Loading tokenizer from {config_from_ckpt.tokenizer.tokenizer_path}")
+    if config_from_ckpt.tokenizer.tokenizer_type == 'simple':
+        tokenizer = SimpleTokenizer.load(config_from_ckpt.tokenizer.tokenizer_path)
     else:
-        tokenizer = BPETokenizer.load(config.tokenizer.tokenizer_path)
+        tokenizer = BPETokenizer.load(config_from_ckpt.tokenizer.tokenizer_path)
     print(f"Vocabulary size: {len(tokenizer.token_to_id)}")
 
-    # Create model with the same architecture as the checkpoint
-    # Note: For generation, model params should ideally be loaded from a config saved with the checkpoint,
-    # but for now, we assume the provided config matches the checkpoint's architecture.
-    model = create_model(config, len(tokenizer.token_to_id))
+    # Create model with the exact architecture from the checkpoint
+    model = create_model(config_from_ckpt, len(tokenizer.token_to_id))
     print(f"Model parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
 
-    trainer = LLMTrainer(model=model, device=device, checkpoint_dir=config.training.checkpoint_dir)
+    # --- 3. Load model weights and generate ---
+    trainer = LLMTrainer(model=model, device=device, checkpoint_dir=config_from_ckpt.training.checkpoint_dir)
+    trainer.load_checkpoint(checkpoint_path) # Loads the weights
     
-    trainer.load_checkpoint(config.training.resume)
-    
+    # Use generation parameters from the provided config file, allowing overrides
     print("\nGenerating text...")
     print(f"Prompt: {config.generation.prompt}")
     generated_text = trainer.generate_text(

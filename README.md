@@ -75,11 +75,12 @@ python3 train.py
 
 ### 4. Generating Text
 
-1.  Edit `config.yaml` and change the following fields:
-    - `generation.generate`: set to `true`
-    - `tokenizer.tokenizer_path`: must point to the tokenizer used during training.
-    - `training.resume`: must point to a trained model checkpoint (e.g., `'checkpoints/wikitext_model/best_model.pt'`).
-    - `generation.prompt`: set your desired starting text.
+To generate text, you only need to provide a checkpoint path. The script automatically loads the model architecture and tokenizer path from the information saved in the checkpoint.
+
+1.  Edit `config.yaml`:
+    - Set `generation.generate` to `true`.
+    - Set `training.resume` to the path of your trained model checkpoint (e.g., `'checkpoints/wikitext_model/best_model.pt'`).
+    - You can also change the `generation.prompt`, `generation.max_length`, and `generation.temperature` to guide the output.
 
 2.  Run the script:
     ```bash
@@ -136,6 +137,7 @@ The `train.py` script is configured via `config.yaml`. You can also override any
 
 #### Key Generation Arguments (override with `--section.key value`)
 - `--generation.generate`: Flag to switch from training to generation mode.
+- `--training.resume`: **(Required for generation)** Path to the model checkpoint. The model architecture and tokenizer path will be loaded from this file.
 - `--generation.prompt`: The initial text to seed the generation.
 - `--generation.max_length`: The maximum number of tokens in the generated output.
 - `--generation.temperature`: Controls the randomness of the output. Higher values (e.g., 1.0) are more creative; lower values (e.g., 0.7) are more deterministic.
