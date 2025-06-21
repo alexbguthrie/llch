@@ -31,6 +31,7 @@ notebook = {
    "metadata": {},
    "outputs": [],
    "source": [
+    "%cd /content\n",
     "# Remove the old directory to ensure a fresh clone\n",
     "!rm -rf llch\n",
     "\n",
@@ -99,7 +100,7 @@ notebook = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "!python train.py \\\n",
+    "!PYTHONPATH=. python train.py \\\n",
     "  --training.device cuda \\\n",
     "  --training.checkpoint_dir /content/drive/MyDrive/llm_from_scratch_colab/checkpoints \\\n",
     "  --tokenizer.tokenizer_path /content/drive/MyDrive/llm_from_scratch_colab/tokenizer.json"
@@ -122,7 +123,7 @@ notebook = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "!python train.py \\\n",
+    "!PYTHONPATH=. python train.py \\\n",
     "  --generation.generate \\\n",
     "  --training.resume /content/drive/MyDrive/llm_from_scratch_colab/checkpoints/best_model.pt \\\n",
     "  --generation.prompt \"The secret to happiness is\""
