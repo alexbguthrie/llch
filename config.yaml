@@ -1,0 +1,39 @@
+# Default configuration for the LLM From Scratch project
+
+# Model parameters
+model:
+  model_type: 'gpt'
+  vocab_size: 10000
+  d_model: 512
+  num_heads: 8
+  num_layers: 6
+  d_ff: 2048
+  max_seq_length: 512
+  dropout: 0.1
+
+# Tokenizer parameters
+tokenizer:
+  tokenizer_type: 'bpe'
+  tokenizer_path: 'tokenizers/bpe_wikitext.json'
+
+# Data parameters
+data:
+  dataset: 'wikitext' # 'wikitext' or 'text_files'
+  data_dir: 'data'
+  text_files_dir: null # Specify path if using 'text_files'
+
+# Training parameters
+training:
+  batch_size: 32
+  learning_rate: 0.0003 # 3e-4
+  max_epochs: 10
+  checkpoint_dir: 'checkpoints/wikitext_model'
+  device: null # 'cuda', 'cpu', or null for auto-detection
+  resume: null # Path to a checkpoint to resume from
+
+# Generation parameters
+generation:
+  generate: false # Set to true to run in generation mode
+  prompt: 'Once upon a time'
+  max_length: 100
+  temperature: 1.0 

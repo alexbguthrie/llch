@@ -50,69 +50,52 @@ pip install -r requirements.txt
 
 ### 3. Training a Model
 
-You can train a model on the standard WikiText-2 dataset or on your own text files.
+Configuration for training and generation is handled by `config.yaml`. You can edit this file directly to change model parameters, paths, and hyperparameters.
 
 **Option A: Train on WikiText-2 (Recommended for first use)**
 
-The WikiText-2 dataset will be automatically downloaded. This command trains a BPE tokenizer and then starts training the model.
+The WikiText-2 dataset will be automatically downloaded. The default `config.yaml` is already set up for this. Simply run:
 
 ```bash
-# Train a new model on the WikiText-2 dataset
-# --tokenizer_type bpe: Uses the advanced BPE tokenizer
-# --tokenizer_path tokenizers/bpe_wikitext.json: Saves the trained tokenizer
-# --checkpoint_dir checkpoints/wikitext_model: Saves model checkpoints here
-python train.py \
-    --dataset wikitext \
-    --tokenizer_type bpe \
-    --tokenizer_path tokenizers/bpe_wikitext.json \
-    --checkpoint_dir checkpoints/wikitext_model
-```
-
-For a smaller, faster-training model, you can reduce the model dimensions:
-
-```bash
-# Train a smaller model for quicker testing
-python train.py \
-    --dataset wikitext \
-    --tokenizer_type bpe \
-    --tokenizer_path tokenizers/bpe_wikitext_small.json \
-    --checkpoint_dir checkpoints/wikitext_model_small \
-    --d_model 256 \
-    --num_heads 4 \
-    --num_layers 4 \
-    --max_seq_length 256
+python3 train.py
 ```
 
 **Option B: Train on Your Own Text Data**
 
-Place your text files (e.g., `.txt` files) in a directory. The script will load all files from that directory.
+1.  Edit `config.yaml` and change the following fields:
+    - `data.dataset`: set to `'text_files'`
+    - `data.text_files_dir`: set to the path of your data directory (e.g., `'my_data/'`)
+    - `tokenizer.tokenizer_path`: choose a new path (e.g., `'tokenizers/bpe_custom.json'`)
+    - `training.checkpoint_dir`: choose a new path (e.g., `'checkpoints/custom_model'`)
 
-```bash
-# Train a model on custom text files located in the 'my_data/' directory
-python train.py \
-    --dataset text_files \
-    --text_files_dir my_data/ \
-    --tokenizer_type bpe \
-    --tokenizer_path tokenizers/bpe_custom.json \
-    --checkpoint_dir checkpoints/custom_model
-```
+2.  Run the training script:
+    ```bash
+    python3 train.py
+    ```
 
 ### 4. Generating Text
 
-Once you have a trained model, you can use it to generate text. You must provide the path to the tokenizer and the model checkpoint.
+1.  Edit `config.yaml` and change the following fields:
+    - `generation.generate`: set to `true`
+    - `tokenizer.tokenizer_path`: must point to the tokenizer used during training.
+    - `training.resume`: must point to a trained model checkpoint (e.g., `'checkpoints/wikitext_model/best_model.pt'`).
+    - `generation.prompt`: set your desired starting text.
+
+2.  Run the script:
+    ```bash
+    python3 train.py
+    ```
+
+### Overriding Config on the Command Line
+
+For quick experiments, you can override any setting from `config.yaml` on the command line using dot notation:
 
 ```bash
-# Generate text using a trained model
-# --generate: Activates generation mode
-# --resume: Path to the saved model checkpoint (use 'best_model.pt' for the best one)
-# --prompt: The starting text for the model
-# --max_length: The total number of tokens in the generated output
-python train.py \
-    --generate \
-    --tokenizer_path tokenizers/bpe_wikitext.json \
-    --resume checkpoints/wikitext_model/best_model.pt \
-    --prompt "The future of AI is" \
-    --max_length 100
+# Run training with a different learning rate and batch size
+python3 train.py --training.learning_rate 0.0001 --training.batch_size 16
+
+# Run generation with a different prompt and temperature
+python3 train.py --generation.generate --generation.prompt "Hello world" --generation.temperature 0.8
 ```
 
 ## Project Structure
@@ -132,6 +115,7 @@ llm_from_scratch/
 │   └── test_tokenizers.py # Unit tests for the tokenizers.
 ├── .gitignore            # Files and directories to be ignored by Git.
 ├── CHANGELOG.md          # A log of changes made to the project.
+├── config.yaml           # Configuration file for training and generation.
 ├── README.md             # This file.
 ├── requirements.txt      # Project dependencies.
 └── train.py              # The main script for training and generation.
@@ -139,27 +123,22 @@ llm_from_scratch/
 
 ## Command-Line Arguments
 
-The `train.py` script is highly configurable via command-line arguments.
+The `train.py` script is configured via `config.yaml`. You can also override any parameter on the command line.
 
-*(For a full list of arguments, run `python train.py --help`)*
+*(For a full list of overridable parameters, see `config.yaml`)*
 
-#### Key Training Arguments
-- `--dataset`: The dataset to use (`wikitext` or `text_files`).
-- `--data_dir`: The base directory for storing data.
-- `--text_files_dir`: The directory containing your custom text files.
-- `--model_type`: The model architecture to use (currently `gpt`).
-- `--tokenizer_type`: The tokenizer to use (`simple` or `bpe`).
-- `--tokenizer_path`: Where to save/load the trained tokenizer.
-- `--checkpoint_dir`: Where to save model checkpoints.
-- `--d_model`, `--num_heads`, `--num_layers`: Key parameters to define the model's size and capacity.
-- `--batch_size`, `--learning_rate`, `--max_epochs`: Core training loop parameters.
-- `--resume`: Path to a checkpoint to resume training from.
+#### Key Training Arguments (override with `--section.key value`)
+- `--data.dataset`: The dataset to use (`wikitext` or `text_files`).
+- `--data.text_files_dir`: The directory containing your custom text files.
+- `--model.d_model`, `--model.num_heads`, `--model.num_layers`: Key parameters to define the model's size and capacity.
+- `--training.batch_size`, `--training.learning_rate`, `--training.max_epochs`: Core training loop parameters.
+- `--training.resume`: Path to a checkpoint to resume training from.
 
-#### Key Generation Arguments
-- `--generate`: Flag to switch from training to generation mode.
-- `--prompt`: The initial text to seed the generation.
-- `--max_length`: The maximum number of tokens in the generated output.
-- `--temperature`: Controls the randomness of the output. Higher values (e.g., 1.0) are more creative; lower values (e.g., 0.7) are more deterministic.
+#### Key Generation Arguments (override with `--section.key value`)
+- `--generation.generate`: Flag to switch from training to generation mode.
+- `--generation.prompt`: The initial text to seed the generation.
+- `--generation.max_length`: The maximum number of tokens in the generated output.
+- `--generation.temperature`: Controls the randomness of the output. Higher values (e.g., 1.0) are more creative; lower values (e.g., 0.7) are more deterministic.
 
 ## License
 
