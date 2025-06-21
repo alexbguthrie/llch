@@ -202,11 +202,13 @@ class BPETokenizer:
                 
     def encode(self, text):
         """Encode text using learned BPE merges"""
-        # Split text into words
-        words = re.findall(r'\w+|[^\w\s]', text.lower())
-        
-        # Start with characters
-        word_tokens = [' '.join(word) for word in words]
+        # A simple pre-tokenization scheme: split by spaces and punctuation
+        # This preserves spaces as tokens
+        pre_tokenizer_regex = r"""'s|'t|'re|'ve|'m|'ll|'d| ?\w+| ?\S+"""
+        words = re.findall(pre_tokenizer_regex, text)
+
+        # Start with characters, handling spaces correctly
+        word_tokens = [' '.join(list(word)) for word in words]
         
         # Apply merges
         for word_idx, word in enumerate(word_tokens):
@@ -248,8 +250,17 @@ class BPETokenizer:
                 tokens.append(self.id_to_token[idx])
                 
         # Join tokens (this is a simplification)
-        text = ''.join(tokens)
-        return text
+        text = "".join(tokens)
+        
+        # Replace the BPE-specific space representation with a standard space
+        text = text.replace(" ", " ")
+        return text.replace("</w>", " ")
+
+    def detokenize(self, text):
+        """A simple de-tokenizer to clean up the generated text."""
+        # Remove space before punctuation
+        text = re.sub(r'\s([?.!,"](?:\s|$))', r'\1', text)
+        return text.strip()
     
     def save(self, path):
         """Save tokenizer to disk"""

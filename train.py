@@ -255,7 +255,10 @@ def run_generation(config):
         max_length=config.generation.max_length,
         temperature=config.generation.temperature
     )
-    print(f"Generated text: {generated_text}")
+    
+    # Detokenize for a cleaner output
+    clean_text = tokenizer.detokenize(generated_text)
+    print(f"Generated text: {clean_text}")
 
 def main():
     config = load_config()
