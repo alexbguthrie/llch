@@ -31,6 +31,9 @@ notebook = {
    "metadata": {},
    "outputs": [],
    "source": [
+    "# Remove the old directory to ensure a fresh clone\n",
+    "!rm -rf llch\n",
+    "\n",
     "!git clone https://github.com/alexbguthrie/llch.git\n",
     "%cd llch"
    ]
