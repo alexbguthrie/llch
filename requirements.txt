@@ -1,10 +1,10 @@
 numpy==1.24.3
 torch==2.0.1
 transformers==4.30.2
-datasets==2.13.1
+datasets==2.14.5
 tqdm==4.65.0
 matplotlib==3.7.1
-huggingface-hub
-fsspec
+huggingface-hub==0.22.2
+fsspec==2024.2.0
 pytest
 PyYAML 
