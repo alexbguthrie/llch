@@ -2,7 +2,7 @@ import os
 import argparse
 import yaml
 import torch
-from types import SimpleNamespace
+from data.dataset import TextDataset
 import sys
 
 # Add project root to Python path to allow running from any directory
