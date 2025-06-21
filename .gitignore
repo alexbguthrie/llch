@@ -66,8 +66,5 @@ venv.bak/
 *.swp
 
 # Project-specific
-data/
-checkpoints/
 training_history.png
 *.pt
-tokenizer.json 
