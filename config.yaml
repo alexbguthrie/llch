@@ -7,10 +7,10 @@ model:
   d_model: 256
   num_heads: 4
   num_layers: 4
-  d_ff: 0.1
+  d_ff: 1024
   max_seq_length: 256
   dropout: 0.1
-  
+
 # Tokenizer parameters
 tokenizer:
   tokenizer_type: 'bpe'
