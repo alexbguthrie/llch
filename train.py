@@ -2,6 +2,7 @@ import os
 import argparse
 import yaml
 import torch
+from types import SimpleNamespace
 from data.dataset import TextDataset
 import sys
 
