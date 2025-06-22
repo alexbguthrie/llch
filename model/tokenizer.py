@@ -190,13 +190,11 @@ class BPETokenizer:
                 merged_token = ''.join(best_pair)
                 new_tokens = []
                 i = 0
-                merged = False
                 while i < len(tokens):
-                    # Find the first occurrence of the best pair to merge
-                    if not merged and i < len(tokens) - 1 and (tokens[i], tokens[i+1]) == best_pair:
+                    # If we find the best pair, merge it and skip the next token
+                    if i < len(tokens) - 1 and (tokens[i], tokens[i+1]) == best_pair:
                         new_tokens.append(merged_token)
                         i += 2
-                        merged = True
                     else:
                         new_tokens.append(tokens[i])
                         i += 1
