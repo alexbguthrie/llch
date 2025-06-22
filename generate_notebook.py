@@ -64,8 +64,8 @@ notebook = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "# We only need to install PyYAML. Most other packages are already in Colab.\n",
-    "!pip install PyYAML"
+    "# We install specific versions of libraries known to be compatible to avoid errors.\n",
+    "!pip install datasets==2.14.5 fsspec==2023.6.0 huggingface-hub==0.22.2 PyYAML"
    ]
   },
   {

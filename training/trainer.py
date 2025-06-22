@@ -255,37 +255,12 @@ class LLMTrainer:
         plt.show()
         
     def generate_text(self, tokenizer, prompt, max_length=100, temperature=1.0):
-        """Generate text from a prompt"""
-        self.model.eval()
-        
-        input_ids = tokenizer.encode(prompt)
-        
-        # Generate tokens
-        generated_ids = input_ids
-        
-        with torch.no_grad():
-            for _ in range(max_length):
-                # Use the model's max_seq_length from its config
-                max_seq_len = self.model.positional_encoding.pe.size(1)
-                current_input = torch.tensor([generated_ids[-max_seq_len:]], dtype=torch.long, device=self.device)
-                
-                # Get model output
-                outputs = self.model(current_input)
-                
-                # Get logits for the last token
-                next_token_logits = outputs[:, -1, :] / temperature
-                
-                # Apply softmax to get probabilities
-                probs = torch.softmax(next_token_logits, dim=-1)
-                
-                # Sample the next token
-                next_token_id = torch.multinomial(probs, num_samples=1).item()
-                
-                # Stop if EOS token is generated
-                if next_token_id == tokenizer.special_tokens.get("<EOS>"):
-                    break
-                    
-                generated_ids.append(next_token_id)
-                
-        # Decode the generated IDs
-        return tokenizer.decode(generated_ids) 
+        """Generate text from a prompt by calling the model's generate method."""
+        # Ensure the model is on the correct device
+        self.model.to(self.device)
+        return self.model.generate(
+            tokenizer=tokenizer,
+            prompt=prompt,
+            max_length=max_length,
+            temperature=temperature
+        ) 

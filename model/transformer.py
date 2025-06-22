@@ -243,11 +243,16 @@ class GPT(nn.Module):
     def generate_mask(self, x):
         # Create causal mask to prevent attending to future tokens
         seq_length = x.size(1)
-        mask = torch.triu(torch.ones(seq_length, seq_length, device=x.device), diagonal=1) == 1
+        # The mask should be (seq_length, seq_length), and it will be broadcasted 
+        # correctly by PyTorch in the attention layer.
+        # A value of `True` indicates a position that should be masked.
+        mask = torch.triu(torch.ones(seq_length, seq_length, device=x.device), diagonal=1).bool()
         return mask
         
     def forward(self, x):
         # Generate causal mask
+        # The mask needs to be of shape (seq_length, seq_length) for the self-attention mechanism.
+        # It will be broadcasted to (batch_size, num_heads, seq_len, seq_len) in the attention layer.
         mask = self.generate_mask(x)
         
         # Embed and add positional encoding
@@ -259,4 +264,42 @@ class GPT(nn.Module):
             
         # Final linear layer
         output = self.fc(x)
-        return output 
+        return output
+
+    @torch.no_grad()
+    def generate(self, tokenizer, prompt, max_length=100, temperature=1.0):
+        """
+        Generate text from a prompt using the GPT model.
+        This function handles the autoregressive generation loop.
+        """
+        self.eval()
+        
+        input_ids = tokenizer.encode(prompt)
+        generated_ids = input_ids
+        
+        for _ in range(max_length):
+            # The input to the model should not exceed its max sequence length
+            current_input_ids = generated_ids[-self.positional_encoding.pe.size(1):]
+            input_tensor = torch.tensor([current_input_ids], dtype=torch.long, device=next(self.parameters()).device)
+            
+            # Get model logits
+            logits = self(input_tensor)
+            
+            # Get logits for the very last token and apply temperature
+            next_token_logits = logits[:, -1, :] / temperature
+            
+            # Apply softmax to get probabilities
+            probs = F.softmax(next_token_logits, dim=-1)
+            
+            # Sample the next token
+            next_token_id = torch.multinomial(probs, num_samples=1).item()
+            
+            # Stop if EOS token is generated
+            # Note: We need a robust way to get the EOS token ID.
+            # This might need to be passed in or handled more gracefully.
+            if tokenizer.special_tokens and next_token_id == tokenizer.special_tokens.get("<EOS>"):
+                break
+                
+            generated_ids.append(next_token_id)
+            
+        return tokenizer.decode(generated_ids) 
