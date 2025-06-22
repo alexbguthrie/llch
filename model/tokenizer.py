@@ -97,170 +97,122 @@ class SimpleTokenizer:
 
 
 class BPETokenizer:
-    """A simple implementation of Byte-Pair Encoding tokenizer"""
+    """A BPE tokenizer inspired by the GPT-2 implementation."""
     
     def __init__(self, vocab_size=10000):
         self.vocab_size = vocab_size
         self.token_to_id = {}
         self.id_to_token = {}
-        self.merges = {}
+        self.merges = {}  # (t1, t2) -> rank
         self.special_tokens = {
-            "<PAD>": 0,
-            "<UNK>": 1,
-            "<BOS>": 2,
-            "<EOS>": 3,
+            "<PAD>": 0, "<UNK>": 1, "<BOS>": 2, "<EOS>": 3,
         }
+        self.end_of_word_token = "</w>"
         
-        # Initialize with special tokens
-        for token, idx in self.special_tokens.items():
-            self.token_to_id[token] = idx
-            self.id_to_token[idx] = token
-            
-        # Initialize with byte tokens (0-255)
-        for i in range(256):
-            char = bytes([i]).decode('latin-1')
-            idx = len(self.token_to_id)
-            self.token_to_id[char] = idx
-            self.id_to_token[idx] = char
-            
-    def get_stats(self, words):
-        """Count frequency of adjacent pairs"""
-        pairs = {}
-        for word in words:
-            symbols = word.split()
-            for i in range(len(symbols) - 1):
-                pair = (symbols[i], symbols[i + 1])
-                pairs[pair] = pairs.get(pair, 0) + 1
-        return pairs
-    
-    def merge_pair(self, pair, words):
-        """Merge all occurrences of a pair in the vocabulary"""
-        new_words = []
-        bigram = ' '.join(pair)
-        replacement = ''.join(pair)
+        # Initialize with special tokens, basic bytes, and end-of-word token
+        initial_vocab = list(self.special_tokens.keys())
+        initial_vocab.extend(bytes([i]).decode('latin-1') for i in range(256))
+        initial_vocab.append(self.end_of_word_token)
         
-        for word in words:
-            new_word = word.replace(bigram, replacement)
-            new_words.append(new_word)
+        for token in sorted(list(set(initial_vocab))):
+            if token not in self.token_to_id:
+                idx = len(self.token_to_id)
+                self.token_to_id[token] = idx
+                self.id_to_token[idx] = token
             
-        return new_words
-    
     def train(self, texts, num_merges=None):
-        """Train BPE on texts"""
         if num_merges is None:
-            # Default to vocab_size - initial vocab size
             num_merges = self.vocab_size - len(self.token_to_id)
 
-        # Build a frequency-counted vocabulary from the texts
+        # Use a regex that handles spaces and punctuation well
+        pre_tokenizer_regex = r"""'s|'t|'re|'ve|'m|'ll|'d| ?[\w]+| ?[^\s\w]+"""
+        
+        # Get word counts
         word_counts = Counter()
         for text in texts:
-            words = re.findall(r'\w+|[^\w\s]', text.lower())
-            word_counts.update(words)
+            word_counts.update(re.findall(pre_tokenizer_regex, text))
+        
+        # Initialize the corpus with character-split words and their counts
+        corpus = {' '.join(list(word)) + f' {self.end_of_word_token}': count for word, count in word_counts.items()}
 
-        # Split each word into characters and store with its frequency
-        # e.g., {'h u g': 5, 'p u g': 2}
-        corpus = {' '.join(word): count for word, count in word_counts.items()}
-
-        # Perform BPE merges
         for i in range(num_merges):
-            # Get pair statistics from the current corpus
+            # Count pairs in the current corpus
             pairs = Counter()
             for word, count in corpus.items():
                 symbols = word.split()
-                for i in range(len(symbols) - 1):
-                    pairs[(symbols[i], symbols[i+1])] += count
+                for j in range(len(symbols) - 1):
+                    pairs[(symbols[j], symbols[j+1])] += count
             
-            if not pairs:
-                break
-                
-            # Find most frequent pair
+            if not pairs: break
+            
+            # Find the most frequent pair
             best_pair = max(pairs, key=pairs.get)
-            
-            # Create the new merged token
             merged_token = ''.join(best_pair)
             
-            # Merge the pair in the corpus vocabulary
-            new_corpus = {}
-            bigram = ' '.join(best_pair)
-            for word, count in corpus.items():
-                new_word = word.replace(bigram, merged_token)
-                new_corpus[new_word] = count
+            # Apply the merge to the corpus
+            new_corpus = {word.replace(' '.join(best_pair), merged_token): count for word, count in corpus.items()}
             corpus = new_corpus
 
-            # Add the merged token to the vocabulary
+            # Add new token to vocabulary
             if merged_token not in self.token_to_id:
                 idx = len(self.token_to_id)
                 self.token_to_id[merged_token] = idx
                 self.id_to_token[idx] = merged_token
-                
-            # Record the merge
-            self.merges[best_pair] = merged_token
             
-            # Stop if we've reached the target vocabulary size
-            if len(self.token_to_id) >= self.vocab_size:
-                break
+            # Record the merge operation with its rank (order of creation)
+            self.merges[best_pair] = i
+            
+            if len(self.token_to_id) >= self.vocab_size: break
                 
     def encode(self, text):
-        """Encode text using learned BPE merges"""
-        # A simple pre-tokenization scheme: split by spaces and punctuation
-        # This preserves spaces as tokens
-        pre_tokenizer_regex = r"""'s|'t|'re|'ve|'m|'ll|'d| ?\w+| ?\S+"""
+        pre_tokenizer_regex = r"""'s|'t|'re|'ve|'m|'ll|'d| ?[\w]+| ?[^\s\w]+"""
         words = re.findall(pre_tokenizer_regex, text)
-
-        # Start with characters, handling spaces correctly
-        word_tokens = [' '.join(list(word)) for word in words]
         
-        # Apply merges
-        for word_idx, word in enumerate(word_tokens):
-            tokens = word.split()
+        all_ids = []
+        for word in words:
+            # Start with characters and add the end-of-word token
+            tokens = list(word) + [self.end_of_word_token]
             
-            # Apply merges until no more can be applied
             while len(tokens) > 1:
-                pairs = [(tokens[i], tokens[i+1]) for i in range(len(tokens)-1)]
+                # Find all current pairs and their ranks from the learned merges
+                pairs = list(zip(tokens[:-1], tokens[1:]))
+                merge_ranks = {pair: self.merges.get(pair, float('inf')) for pair in pairs}
+                
+                # Find the rank of the next best merge
+                best_rank = min(merge_ranks.values())
+                if best_rank == float('inf'):
+                    break # No more possible merges for this word
+                
+                # Find the first pair that has the best rank
+                best_pair = min(merge_ranks, key=merge_ranks.get)
+                
+                # Merge the best pair
+                merged_token = ''.join(best_pair)
+                new_tokens = []
+                i = 0
                 merged = False
-                
-                for pair in pairs:
-                    if pair in self.merges:
-                        idx = pairs.index(pair)
-                        tokens = tokens[:idx] + [self.merges[pair]] + tokens[idx+2:]
+                while i < len(tokens):
+                    # Find the first occurrence of the best pair to merge
+                    if not merged and i < len(tokens) - 1 and (tokens[i], tokens[i+1]) == best_pair:
+                        new_tokens.append(merged_token)
+                        i += 2
                         merged = True
-                        break
-                        
-                if not merged:
-                    break
-                    
-            word_tokens[word_idx] = ' '.join(tokens)
+                    else:
+                        new_tokens.append(tokens[i])
+                        i += 1
+                tokens = new_tokens
             
-        # Convert to token IDs
-        ids = []
-        for word in word_tokens:
-            for token in word.split():
-                if token in self.token_to_id:
-                    ids.append(self.token_to_id[token])
-                else:
-                    ids.append(self.special_tokens["<UNK>"])
-                    
-        return ids
-    
-    def decode(self, ids):
-        """Decode token IDs back to text"""
-        tokens = []
-        for idx in ids:
-            if idx in self.id_to_token:
-                tokens.append(self.id_to_token[idx])
-                
-        # Join tokens (this is a simplification)
-        text = "".join(tokens)
-        
-        # Replace the BPE-specific space representation with a standard space
-        text = text.replace(" ", " ")
-        return text.replace("</w>", " ")
+            # Convert final subword tokens to IDs
+            all_ids.extend(self.token_to_id.get(token, self.special_tokens["<UNK>"]) for token in tokens)
+            
+        return all_ids
 
-    def detokenize(self, text):
-        """A simple de-tokenizer to clean up the generated text."""
-        # Remove space before punctuation
-        text = re.sub(r'\s([?.!,"](?:\s|$))', r'\1', text)
-        return text.strip()
+    def decode(self, ids):
+        tokens = [self.id_to_token.get(idx, "") for idx in ids]
+        text = "".join(tokens)
+        # Replace the end-of-word token with a space and clean up
+        text = text.replace(self.end_of_word_token, " ").strip()
+        return text
     
     def save(self, path):
         """Save tokenizer to disk"""
@@ -276,7 +228,8 @@ class BPETokenizer:
                 "vocab_size": self.vocab_size,
                 "token_to_id": self.token_to_id,
                 "merges": merges_str_keys,
-                "special_tokens": self.special_tokens
+                "special_tokens": self.special_tokens,
+                "end_of_word_token": self.end_of_word_token,
             }, f)
             
     @classmethod
@@ -293,6 +246,7 @@ class BPETokenizer:
         tokenizer.merges = {tuple(eval(k)): v for k, v in merges_str_keys.items()}
         
         tokenizer.special_tokens = data["special_tokens"]
+        tokenizer.end_of_word_token = data.get("end_of_word_token", "</w>")
         
         # Reconstruct id_to_token
         tokenizer.id_to_token = {int(idx): token for token, idx in tokenizer.token_to_id.items()}
