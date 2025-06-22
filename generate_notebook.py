@@ -170,7 +170,7 @@ notebook = {
     "!PYTHONPATH=/content/llch python3 train.py \\\\",
     "  --generation.generate \\\\",
     "  --training.resume /content/drive/MyDrive/llm_from_scratch_colab/checkpoints/gpt_medium/best_model.pt \\\\",
-    "  --generation.prompt \\"The secret to happiness is\\""
+    "  --generation.prompt 'The secret to happiness is'"
    ]
   }
  ],
