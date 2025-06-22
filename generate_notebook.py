@@ -105,9 +105,9 @@ notebook = {
     "# The path to your project folder on Google Drive\n",
     "colab_dir = '/content/drive/MyDrive/llm_from_scratch_colab'\n",
     "\n",
-    "# Define paths for checkpoints and tokenizer\n",
-    "checkpoint_dir = os.path.join(colab_dir, 'checkpoints')\n",
-    "tokenizer_path = os.path.join(colab_dir, 'tokenizer.json')\n",
+    "# Define paths for the new, larger model's checkpoints and tokenizer\n",
+    "checkpoint_dir = os.path.join(colab_dir, 'checkpoints/gpt_medium')\n",
+    "tokenizer_path = os.path.join(colab_dir, 'tokenizers/bpe_gpt2_small.json')\n",
     "\n",
     "# Remove the old checkpoint directory if it exists\n",
     "if os.path.exists(checkpoint_dir):\n",
@@ -144,10 +144,12 @@ notebook = {
    "outputs": [],
    "source": [
     "# We need to set the PYTHONPATH to include our project directory\n",
-    "!PYTHONPATH=/content/llch python3 train.py \\\n",
-    "  --training.device cuda \\\n",
-    "  --training.checkpoint_dir /content/drive/MyDrive/llm_from_scratch_colab/checkpoints \\\n",
-    "  --tokenizer.tokenizer_path /content/drive/MyDrive/llm_from_scratch_colab/tokenizer.json"
+    "# We override the config to use Colab-specific paths and run for more epochs.\n",
+    "!PYTHONPATH=/content/llch python3 train.py \\\\",
+    "  --training.device cuda \\\\",
+    "  --training.max_epochs 10 \\\\",
+    "  --training.checkpoint_dir /content/drive/MyDrive/llm_from_scratch_colab/checkpoints/gpt_medium \\\\",
+    "  --tokenizer.tokenizer_path /content/drive/MyDrive/llm_from_scratch_colab/tokenizers/bpe_gpt2_small.json"
    ]
   },
   {
@@ -165,10 +167,10 @@ notebook = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "!PYTHONPATH=/content/llch python3 train.py \\\n",
-    "  --generation.generate \\\n",
-    "  --training.resume /content/drive/MyDrive/llm_from_scratch_colab/checkpoints/best_model.pt \\\n",
-    "  --generation.prompt \"The secret to happiness is\""
+    "!PYTHONPATH=/content/llch python3 train.py \\\\",
+    "  --generation.generate \\\\",
+    "  --training.resume /content/drive/MyDrive/llm_from_scratch_colab/checkpoints/gpt_medium/best_model.pt \\\\",
+    "  --generation.prompt \\"The secret to happiness is\\""
    ]
   }
  ],

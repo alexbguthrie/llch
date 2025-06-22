@@ -3,18 +3,18 @@
 # Model parameters
 model:
   model_type: 'gpt'
-  vocab_size: 30000
-  d_model: 256
-  num_heads: 4
-  num_layers: 4
-  d_ff: 1024
-  max_seq_length: 256
+  vocab_size: 50257
+  d_model: 768
+  num_heads: 12
+  num_layers: 12
+  d_ff: 3072
+  max_seq_length: 512
   dropout: 0.1
 
 # Tokenizer parameters
 tokenizer:
   tokenizer_type: 'bpe'
-  tokenizer_path: 'tokenizers/bpe_wikitext_large.json'
+  tokenizer_path: 'tokenizers/bpe_gpt2_small.json'
 
 # Data parameters
 data:
@@ -25,16 +25,15 @@ data:
 # Training parameters
 training:
   batch_size: 16
-  learning_rate: 0.0001 # 3e-4
-  max_epochs: 10
-  checkpoint_dir: 'checkpoints/wikitext_model_large'
-  device: "cpu"
-  device: null # 'cuda', 'cpu', or null for auto-detection
+  learning_rate: 0.0001
+  max_epochs: 3 # A small default, can be overridden for longer runs
+  checkpoint_dir: 'checkpoints/gpt_medium_local'
+  device: null # 'cuda', 'mps', 'cpu', or null for auto-detection
   resume: null # Path to a checkpoint to resume from
 
 # Generation parameters
 generation:
   generate: false # Set to true to run in generation mode
-  prompt: 'Once upon a time'
+  prompt: 'The secret to happiness is'
   max_length: 100
-  temperature: 1.0 
+  temperature: 0.7 
